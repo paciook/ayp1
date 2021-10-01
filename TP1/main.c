@@ -9,7 +9,7 @@
 #define ANCHO 640
 #define ALTO 480
 #define FOV 90
-#define PI 3.14159265
+#define PI 3.1415926535897932
 
 /*
  * El centro de la esfera esta en el punto (0.5,0.75,1.9) y tiene un radio de 
@@ -27,7 +27,7 @@ float norma(float x, float y, float z){
 }
 
 int intersecta_esfera(float dx, float dy, float dz){
-    return (pow(producto_interno(CX,CY,CZ,dx,dy,dz),2) - producto_interno(CX,CY,CZ,CX,CY,CZ) + pow(R,2) >= 0);
+    return (pow(producto_interno(CX,CY,CZ,dx,dy,dz),2) - producto_interno(CX,CY,CZ,CX,CY,CZ) + R*R >= 0);
 }
 
 
@@ -37,8 +37,8 @@ int main(void){
     
     printf("P1\n%d %d\n", ANCHO, ALTO);
 
-    for(int y = (ALTO/2)-1; y >= -ALTO/2; y--){
-        for(int x = -ANCHO/2; x < ANCHO/2; x++){
+    for(float y = (ALTO/2.0)-1; y >= -ALTO/2.0; y--){
+        for(float x = -ANCHO/2.0; x < ANCHO/2.0; x++){
             float nor = norma(x,y,z);
             float nx = x / nor;
             float ny = y / nor;
