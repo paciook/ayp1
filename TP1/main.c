@@ -17,17 +17,21 @@
  */
 
 
-
 float producto_interno(float x1, float y1, float z1, float x2, float y2, float z2) {
-    return (x1*x2) + (y1*y2) + (z1*z2);  // devolver producto interno
+    return (x1*x2) + (y1*y2) + (z1*z2);
 }
 
 float norma(float x, float y, float z){
-    return sqrt(producto_interno(x,y,z,x,y,z));
+    float n = sqrt(producto_interno(x,y,z,x,y,z));
+    return n;
 }
 
 int intersecta_esfera(float dx, float dy, float dz){
-    return (pow(producto_interno(CX,CY,CZ,dx,dy,dz),2) - producto_interno(CX,CY,CZ,CX,CY,CZ) + R*R >= 0);
+    
+    float p_Cd = producto_interno(CX,CY,CZ,dx,dy,dz);
+    float p_CC = producto_interno(CX,CY,CZ,CX,CY,CZ);
+
+    return ((p_Cd*p_Cd) - p_CC + R*R >= 0);
 }
 
 
@@ -44,9 +48,9 @@ int main(void){
             float ny = y / nor;
             float nz = z / nor;
 
-            //printf("La norma es %f\n", norma(nx,ny,nz));
-            printf("%d", intersecta_esfera(nx,ny,nz));
+            printf("%d ", intersecta_esfera(nx,ny,nz));
         }
+        printf("\n");
     }
 
     return 0;

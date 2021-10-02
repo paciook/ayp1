@@ -4,16 +4,33 @@
 #include <float.h>
 #define INFINITO FLT_MAX
 
-#define IMAX 255
-
 #define IA  5
 #define II  255
 
 #define FOV 90
-#define PI 3.14159
+#define PI 3.1415926535897932
 #define ANCHO 640
 #define ALTO 480
 
+const float luz[3] = {0.2873478855663454, 0.9578262852211513, 0};
+
+const float centros[][3] = {
+    {-.4, .75, 1.55},
+    {-.55, -.4, 2},
+    {3, 1.5, 4},
+    {3, 1.5, 5},
+    {3, -1.5, 4},
+    {3, -1.5, 5},
+};
+
+const float radios[] = {
+    .3,
+    .85,
+    .4,
+    .4,
+    .4,
+    .4,
+};
 
 float producto_interno(const float a[3], const float b[3]){
     float prod = 0;
@@ -67,16 +84,15 @@ float distancia_esfera( const float c[3], const float r, const float o[3],
 
     float res[3];
     resta(res,o,c);
+    float p_od = producto_interno(o,d);
+    float p_cd = producto_interno(c,d);
 
-	disc = pow((-producto_interno(o,d)+producto_interno(c,d)),2)-
-                (producto_interno(res,res)) + pow(r,2);
+	disc = ((-p_od + p_cd)*(-p_od + p_cd)) - producto_interno(res,res) + r*r;
 
-	if(disc >= 0){
-		t = -producto_interno(o,d) + producto_interno(c,d) - sqrt(disc);
-        if(t > 0)
-            return t;
-    }
-    return INFINITO;
+	if(disc >= 0)
+		t = -p_od + p_cd - sqrt(disc);
+    
+    return (t>0)? t : INFINITO;
 }
 
 void normal_esfera( float normal[3], const float c[3], float r,
@@ -98,16 +114,16 @@ int computar_intensidad(const float cs[][3], const float rs[], size_t n_esferas,
 
     // Digamos que no intersectamos nada hasta que se demuestre lo contrario
     int esf_cercana = -1;
-    float dist_c = INFINITO;
+    float dist_cercana = INFINITO;
 
     // Necesitamos saber si hay alguna esfera más cercana, para calcular la que
     // tengamos inmediatamente adelante
     for( int i = 0; i < n_esferas; i++){
-        // Calculo la distancia con el i-ésimo y lo comparo con el más esf_cercana
+        // Calculo la distancia con el i-ésimo y lo comparo con esf_cercana
         float dist_i = distancia_esfera(cs[i],rs[i],o,d);
-        if(dist_i < dist_c){
+        if(dist_i < dist_cercana){
             esf_cercana = i;
-            dist_c = dist_i;
+            dist_cercana = dist_i;
         }
     }
 
@@ -117,7 +133,7 @@ int computar_intensidad(const float cs[][3], const float rs[], size_t n_esferas,
 
     // Tengamos en p la intersección
     float p[3];
-    interpolar_recta(p,o,d,dist_c);
+    interpolar_recta(p,o,d,dist_cercana);
 
     // Y en n el versor normal
     float n[3];
@@ -137,44 +153,20 @@ int computar_intensidad(const float cs[][3], const float rs[], size_t n_esferas,
     }
 
     // Calculo la intensidad en escala desde 0 a 255
-    inten = producto_interno(n,luz) * IMAX;
+    inten = IA + (producto_interno(n,luz) * (II-IA));
 
-    // Si la intensidad es negativa, devuelvo 0.
-    if (inten < 0)
-        return 0;
-
-    return inten;
+    return (inten>0)? inten : IA;
 }
 
 int main (void){
 
-    const float luz[3] = {0.2873478855663454, 0.9578262852211513, 0};
-
-    const float centros[][3] = {
-        {-.4, .75, 1.55},
-        {-.55, -.4, 2},
-        {3, 1.5, 4},
-        {3, 1.5, 5},
-        {3, -1.5, 4},
-        {3, -1.5, 5},
-    };
-
-    const float radios[] = {
-        .3,
-        .85,
-        .4,
-        .4,
-        .4,
-        .4,
-    };
-
-    printf("P2\n%d %d\n%d\n",ANCHO,ALTO,IMAX); 
+    printf("P2\n%d %d\n%d\n",ANCHO,ALTO,II); 
 
     float z = ANCHO / (2 * (tan( ((FOV*PI) / 180) /2.0)));
     float o[3] = {0};
 
-    for(int y = ALTO/2 - 1; y >= -ALTO/2; y--){
-        for(int x = -ANCHO/2; x < ANCHO/2; x++){
+    for(float y = ALTO/2.0 - 1; y >= -ALTO/2.0; y--){
+        for(float x = -ANCHO/2.0; x < ANCHO/2.0; x++){
             float d[3] = {x,y,z};
             normalizar(d);
             printf("%d ", computar_intensidad(centros, radios,sizeof(centros)/sizeof(centros[0]), luz,o,d));
