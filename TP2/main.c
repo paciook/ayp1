@@ -50,7 +50,6 @@ void normalizar(float a[3]){
     for(int i = 0; i < 3; i++)
         a[i] /= nor;
 
-    return;
 }
 
 void resta(float r[3], const float a[3], const float b[3]){
@@ -69,7 +68,6 @@ void interpolar_recta(float p[3], const float o[3], const float d[3], float t){
     for(int i = 0; i < 3; i++)
         p[i] = o[i] + d[i]*t;
 
-    return;
 }
 
 float distancia_esfera( const float c[3], const float r, const float o[3],
@@ -83,16 +81,18 @@ float distancia_esfera( const float c[3], const float r, const float o[3],
 	float disc = 0;
 
     float res[3];
-    resta(res,o,c);
-    float p_od = producto_interno(o,d);
-    float p_cd = producto_interno(c,d);
+    resta(res,c,o);
+    float p_res = producto_interno(res,d);
 
-	disc = ((-p_od + p_cd)*(-p_od + p_cd)) - producto_interno(res,res) + r*r;
-
-	if(disc >= 0)
-		t = -p_od + p_cd - sqrt(disc);
+	disc = (p_res*p_res) - producto_interno(res,res) + r*r;
     
-    return (t>0)? t : INFINITO;
+	
+    if(disc >= 0){
+        float sq = sqrt(disc);
+        t = p_res + ((p_res <= sq) ? sq : -sq);
+    }
+
+    return (t > 0) ? t : INFINITO;
 }
 
 void normal_esfera( float normal[3], const float c[3], float r,
@@ -101,11 +101,8 @@ void normal_esfera( float normal[3], const float c[3], float r,
      * Defino en normal[3] el versor normal a la esfera de centr c[3]
      * y radio r, en el punto p[3].
      */
-    
-    for(int i = 0; i<3;i++)
-        normal[i] = (p[i] - c[i]) / r;
-
-    return;
+    resta(normal,p,c);
+    normalizar(normal);
 }
 
 int computar_intensidad(const float cs[][3], const float rs[], size_t n_esferas,
@@ -152,10 +149,9 @@ int computar_intensidad(const float cs[][3], const float rs[], size_t n_esferas,
             return IA;
     }
 
-    // Calculo la intensidad en escala desde 0 a 255
-    inten = IA + (producto_interno(n,luz) * (II-IA));
+    inten = IA + (producto_interno(n,luz) * II);
 
-    return (inten>0)? inten : IA;
+    return (inten>0) ? ((inten < II) ? inten : II) : IA;
 }
 
 int main (void){
