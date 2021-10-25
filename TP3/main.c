@@ -53,7 +53,6 @@ float vector_producto_interno(vector_t a, vector_t b){
     prod += a.x * b.x;
     prod += a.y * b.y;
     prod += a.z * b.z;
-
     return prod;
 }
 
@@ -63,42 +62,24 @@ float vector_norma(vector_t a){
 }
 
 vector_t vector_resta(vector_t a, vector_t b){
-    vector_t r;
-    r.x = a.x - b.x;
-    r.y = a.y - b.y;
-    r.z = a.z - b.z;
-    return r;
+    return (vector_t){a.x - b.x, a.y - b.y, a.z - b.z};
 }
 
 vector_t vector_interpolar_recta(vector_t o, vector_t d, float t){
-    vector_t p = {o.x + (d.x)*t, o.y + (d.y)*t, o.z + (d.z)*t};
-    return p;
+    return (vector_t){o.x + (d.x)*t, o.y + (d.y)*t, o.z + (d.z)*t};
 }
 
 vector_t vector_normalizar(vector_t a){
-    vector_t n;
-    float norma = vector_norma(a);
-    n.x = a.x / norma;
-    n.y = a.y / norma;
-    n.z = a.z / norma;
-
-    return n;
+    float m = vector_norma(a);
+    return (vector_t){a.x/m, a.y/m, a.z/m};
 }
 
 color_t color_sumar(color_t c, color_t m, float p){
-    color_t s;
-    s.r = c.r + p*m.r;
-    s.g = c.g + p*m.g;
-    s.b = c.b + p*m.b;
-    return s;
+    return (color_t){c.r + p*(m.r), c.g + p*(m.g), c.b + p*(m.b)};
 }
 
 color_t color_absorber(color_t b, color_t c){
-    color_t a;
-    a.r = c.r * b.r;
-    a.g = c.g * b.g;
-    a.b = c.b * b.b;
-    return a;
+    return (color_t){b.r*c.r, b.g*c.g, b.b*c.b};
 }
 
 int ftoppm(float f){
@@ -159,13 +140,15 @@ float esfera_distancia(const esfera_t *esfera, vector_t o, vector_t d,
         float sq = sqrt(disc);
         t = p_resd + ((p_resd <= sq) ? sq : -sq);
     }
-    printf("%f\n", t);
+
     if(t <= 0){
         return INFINITO;
     }
 
-    *punto = vector_interpolar_recta(o,d,t);
-    *normal = vector_normalizar(vector_resta(*punto,esfera->centro));
+    if(punto != NULL)
+        *punto = vector_interpolar_recta(o,d,t);
+    if(normal != NULL)
+        *normal = vector_normalizar(vector_resta(*punto,esfera->centro));
 
     return t;
 }
@@ -185,37 +168,49 @@ bool arreglo_agregar(arreglo_t *a, void *e){
 color_t computar_intensidad(const arreglo_t *esferas, const arreglo_t *luces,
                             color_t ambiente, vector_t o, vector_t d){
     color_t c = {0,0,0};
-    color_t ia = {IA/255.0,IA/255.0,IA/255.0};
+
     vector_t p,n;
     float t,ant;
-    size_t n_esf;
     t=ant=INFINITO;
 
+    size_t n_esf = -1;
+
     for(size_t i = 0; i < esferas->n; i++){
-        ant = esfera_distancia((esferas->v)[i], o, d, &p, &n);
+        ant = esfera_distancia((esferas->v)[i], o, d, NULL, NULL);
         if(ant < t){
             t = ant;
             n_esf = i;
         }
     }
 
-    if(t==INFINITO){
+    if(t == INFINITO){
         return c;
     }
+    assert(n_esf != -1 && t>=0);
+    esfera_distancia((esferas->v)[n_esf], o, d, &p, &n);
 
-    esfera_t *esfera = ((esfera_t*)((esferas->v)[n_esf]));
-    for(size_t i = 0; i < luces->n; i++ ){
-        luz_t *luz = ((luz_t*)((luces->v)[i]));
+    esfera_t *esfera = (esfera_t*)((esferas->v)[n_esf]);
+
+    for(size_t i = 0; i < luces->n; i++){
+        luz_t *luz = (luz_t*)((luces->v)[i]);
         
-        color_t inten_i = color_absorber(luz->color,esfera->color);
-        vector_t l_luz = (luz->es_puntual) ? vector_resta(luz->posicion,p) : luz->posicion;
-        float prod_ln = vector_producto_interno(l_luz,n);
+        vector_t l_luz = (luz->es_puntual) ? vector_normalizar(vector_resta(luz->posicion,p)) : luz->posicion;
+        
+        bool sigma = true;
+        for(size_t j = 0; j < esferas->n && sigma; j++){
+            if(j == n_esf)
+                continue;
+            sigma = (esfera_distancia(esferas->v[j],p,l_luz,NULL,NULL) == INFINITO);
+        }
 
-        color_sumar(c, inten_i, esfera->kd *  prod_ln);
+        if(sigma){
+            color_t inten_i = color_absorber(luz->color,esfera->color);
+            float prod_ln = vector_producto_interno(l_luz,n);
+            c = color_sumar(c, inten_i, esfera->kd *  prod_ln);
+        }
     }
-    color_sumar(c, ia, ((esfera_t*)((esferas->v)[n_esf]))->ka);
 
-    return c;
+    return color_sumar(c, ambiente, esfera->ka);
 }
 // ###################################################
 
