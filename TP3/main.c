@@ -194,19 +194,28 @@ color_t computar_intensidad(const arreglo_t *esferas, const arreglo_t *luces,
     for(size_t i = 0; i < luces->n; i++){
         luz_t *luz = (luz_t*)((luces->v)[i]);
         
-        vector_t l_luz = (luz->es_puntual) ? vector_normalizar(vector_resta(luz->posicion,p)) : luz->posicion;
-        
         bool sigma = true;
+        float dist_luz;
+        vector_t l_luz;
+        if(luz->es_puntual){
+            vector_t p_to_l = vector_resta(luz->posicion,p);
+            l_luz = vector_normalizar(p_to_l);
+            dist_luz = vector_norma(p_to_l);
+        } else {
+            l_luz = luz->posicion;
+            dist_luz = INFINITO;
+        }
+
         for(size_t j = 0; j < esferas->n && sigma; j++){
             if(j == n_esf)
                 continue;
-            sigma = (esfera_distancia(esferas->v[j],p,l_luz,NULL,NULL) == INFINITO);
+            sigma = !(esfera_distancia(esferas->v[j],p,l_luz,NULL,NULL) < dist_luz);
         }
 
         if(sigma){
             color_t inten_i = color_absorber(luz->color,esfera->color);
             float prod_ln = vector_producto_interno(l_luz,n);
-            c = color_sumar(c, inten_i, esfera->kd *  prod_ln);
+            c = color_sumar(c, inten_i, esfera->kd *  (prod_ln >= 0 ? prod_ln : 0));
         }
     }
 
