@@ -1,7 +1,5 @@
 #include "imagen.h"
 
-#include <stdlib.h>
-
 struct imagen {
     color_t **lienzo;
     size_t ancho, alto;
