@@ -1,5 +1,3 @@
-#include <math.h>
-
 #include "vector.h"
 
 float vector_producto_interno(vector_t a, vector_t b){
@@ -9,7 +7,6 @@ float vector_producto_interno(vector_t a, vector_t b){
     prod += a.z * b.z;
     return prod;
 }
-
 
 float vector_norma(vector_t a){
     return sqrt(vector_producto_interno(a,a));

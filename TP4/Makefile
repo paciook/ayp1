@@ -3,14 +3,17 @@ LDLIBS=-lm
 
 all: main clean
 
-main: main.o imagen.o
-	gcc $(CFLAGS) $(LDLIBS) main.o imagen.o -o main
+main: main.o imagen.o vector.o
+	gcc $(CFLAGS) main.o imagen.o vector.o $(LDLIBS) -o main
 
 main.o: main.c imagen.h vector.h
-	gcc $(CFLAGS) -c main.c
+	gcc $(CFLAGS) $(LDLIBS) -c main.c
 
 imagen.o: imagen.c imagen.h
 	gcc $(CFLAGS) -c imagen.c
+
+vector.o: vector.c vector.h
+	gcc $(CFLAGS) $(LDLIBS) -c vector.c
 
 clean:
 	rm -vf *.o
