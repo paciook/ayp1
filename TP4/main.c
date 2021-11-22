@@ -175,7 +175,7 @@ int main(int argc, char *argv[]) {
     }
 
     int ancho, alto;
-    if(!( (ancho = atoi(argv[1])) && (ancho > 0) && (alto = atoi(argv[2])) )){
+    if(!( (ancho = atoi(argv[1])) > 0 && (alto = atoi(argv[2])) > 0 )){
         fprintf(stderr, "Alto y/o ancho invalido/s.\n");
         return 2;
     }
