@@ -1,2 +1,4 @@
 */anotaciones.txt
 */*.out
+*/main
+*/*/main
