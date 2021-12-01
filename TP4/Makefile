@@ -1,7 +1,7 @@
 CFLAGS=-Wall -std=c99 -pedantic -g
 LDLIBS=-lm
 
-all: main clean
+all: main
 
 main: main.o imagen.o vector.o
 	gcc $(CFLAGS) main.o imagen.o vector.o $(LDLIBS) -o main
@@ -16,4 +16,4 @@ vector.o: vector.c vector.h
 	gcc $(CFLAGS) $(LDLIBS) -c vector.c
 
 clean:
-	rm -vf *.o
+	rm -vf *.o main
