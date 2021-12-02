@@ -29,7 +29,7 @@ typedef struct {
     vector_t centro;
     float radio;
     color_t color;
-    float ka, kd;
+    float ka, kd, ks, kr;
 
 } esfera_t;
 
@@ -74,6 +74,13 @@ vector_t vector_normalizar(vector_t a){
     return (vector_t){a.x/m, a.y/m, a.z/m};
 }
 
+vector_t vector_estirar(vector_t a, float factor){
+    a.x *= factor;
+    a.y *= factor;
+    a.z *= factor;
+    return a;
+}
+
 color_t color_sumar(color_t c, color_t m, float p){
     return (color_t){c.r + p*(m.r), c.g + p*(m.g), c.b + p*(m.b)};
 }
@@ -91,7 +98,7 @@ void color_imprimir(color_t c){
 }
 
 esfera_t *esfera_crear(vector_t centro, float radio, color_t color,
-                        float ka, float kd){
+                        float ka, float kd, float ks, float kr){
     esfera_t *e = malloc(sizeof(esfera_t));
     if(e == NULL)
         return NULL;
@@ -101,6 +108,8 @@ esfera_t *esfera_crear(vector_t centro, float radio, color_t color,
     e->color = color;
     e->ka = ka;
     e->kd = kd;
+    e->ks = ks;
+    e->kr = kr;
 
     return e;
 }
@@ -165,9 +174,10 @@ bool arreglo_agregar(arreglo_t *a, void *e){
     return true;
 }
 
-color_t computar_intensidad(const arreglo_t *esferas, const arreglo_t *luces,
-                            color_t ambiente, vector_t o, vector_t d){
+color_t computar_intensidad(int prof, const arreglo_t *esferas, const arreglo_t *luces,
+                            color_t ambiente, vector_t o, vector_t d, size_t esf){
     color_t c = {0,0,0};
+    if(prof <= 0) return c;
 
     vector_t p,n;
     float t,ant;
@@ -176,6 +186,7 @@ color_t computar_intensidad(const arreglo_t *esferas, const arreglo_t *luces,
     size_t n_esf = -1;
 
     for(size_t i = 0; i < esferas->n; i++){
+        if(i == esf) continue;
         ant = esfera_distancia((esferas->v)[i], o, d, NULL, NULL);
         if(ant < t){
             t = ant;
@@ -188,6 +199,8 @@ color_t computar_intensidad(const arreglo_t *esferas, const arreglo_t *luces,
     }
     assert(n_esf != -1 && t>=0);
     esfera_distancia((esferas->v)[n_esf], o, d, &p, &n);
+    vector_t r = vector_estirar(n, 2*vector_producto_interno(d,n));
+    r = vector_resta(d, r);
 
     esfera_t *esfera = (esfera_t*)((esferas->v)[n_esf]);
 
@@ -213,13 +226,35 @@ color_t computar_intensidad(const arreglo_t *esferas, const arreglo_t *luces,
         }
 
         if(sigma){
+            /*
             color_t inten_i = color_absorber(luz->color,esfera->color);
             float prod_ln = vector_producto_interno(l_luz,n);
             c = color_sumar(c, inten_i, esfera->kd *  (prod_ln >= 0 ? prod_ln : 0));
+            */
+            float factor_angulo;
+
+            // Calculo factor de angulo
+            {
+                // Termino del angulo de la normal
+                float prod_ln = vector_producto_interno(l_luz,n);
+                float termino_normal = esfera->kd *  (prod_ln >= 0 ? prod_ln : 0);
+
+                // Termino del angulo del rebote
+                float prod_lr = vector_producto_interno(l_luz,r);
+                float termino_rebote = esfera->ks * pow((prod_lr >= 0 ? prod_lr : 0), 10);
+
+                factor_angulo = termino_normal + termino_rebote;
+            }
+            color_t abs = color_absorber(luz->color, esfera->color);
+
+            // Sumo el color de la luz
+            c = color_sumar(c, abs, factor_angulo);
         }
     }
 
-    return color_sumar(c, ambiente, esfera->ka);
+    c = color_sumar(c, ambiente, esfera->ka);
+
+    return color_sumar(c, computar_intensidad(prof-1, esferas, luces, ambiente, p, r, n_esf), esfera->kr);
 }
 // ###################################################
 
@@ -240,32 +275,32 @@ int main(void) {
     for(size_t i = 0; i < luces.n; i++)
         assert(luces.v[i] != NULL);
 
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){0, 1, 2.4}, .3, (color_t){1, 1, 1}, 1, 1)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){0, -.4, 3}, 1, (color_t){1, 1, 1}, 1, 1)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){0, 1, 2.4}, .3, (color_t){1, 1, 1}, 1, 1, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){0, -.4, 3}, 1, (color_t){1, 1, 1}, 1, 1, 0.16, .33)));
 
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-2, -.6, 3}, .3, (color_t){1, 0, 0}, 1, .8)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-1.73, -.6, 2}, .3, (color_t){1, 1, 0}, 1, 1)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-1, -.6, 1.26}, .3, (color_t){0, 1, 0}, 1, 1)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){0, -.6, 1}, .3, (color_t){1, 1, 1}, 1, 1)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){1, -.6, 1.26}, .3, (color_t){0, 1, 1}, 1, 1)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){1.73, -.6, 2}, .3, (color_t){0, 0, 1}, 1, 1)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){2, -.6, 3}, .3, (color_t){1, 0, 1}, 1, 1)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-2, -.6, 3}, .3, (color_t){1, 0, 0}, 1, .8, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-1.73, -.6, 2}, .3, (color_t){1, 1, 0}, 1, 1, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-1, -.6, 1.26}, .3, (color_t){0, 1, 0}, 1, 1, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){0, -.6, 1}, .3, (color_t){1, 1, 1}, 1, 1, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){1, -.6, 1.26}, .3, (color_t){0, 1, 1}, 1, 1, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){1.73, -.6, 2}, .3, (color_t){0, 0, 1}, 1, 1, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){2, -.6, 3}, .3, (color_t){1, 0, 1}, 1, 1, 0.16, .33)));
 
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-3, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, 0)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-2, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, .16)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-1, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, .33)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){0, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, .5)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){1, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, .66)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){2, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, .83)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){3, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, 1)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-3, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, 0, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-2, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, .16, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-1, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, .33, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){0, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, .5, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){1, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, .66, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){2, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, .83, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){3, 2.5, 4.3}, .3, (color_t){1, 1, 1}, 1, 1, 0.16, .33)));
 
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-3, 1.5, 4}, .3, (color_t){1, 1, 1}, 0, 1)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-2, 1.5, 4}, .3, (color_t){1, 1, 1}, .16, 1)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-1, 1.5, 4}, .3, (color_t){1, 1, 1}, .33, 1)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){0, 1.5, 4}, .3, (color_t){1, 1, 1}, .5, 1)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){1, 1.5, 4}, .3, (color_t){1, 1, 1}, .66, 1)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){2, 1.5, 4}, .3, (color_t){1, 1, 1}, .83, 1)));
-    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){3, 1.5, 4}, .3, (color_t){1, 1, 1}, 1, 1)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-3, 1.5, 4}, .3, (color_t){1, 1, 1}, 0, 1, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-2, 1.5, 4}, .3, (color_t){1, 1, 1}, .16, 1, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-1, 1.5, 4}, .3, (color_t){1, 1, 1}, .33, 1, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){0, 1.5, 4}, .3, (color_t){1, 1, 1}, .5, 1, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){1, 1.5, 4}, .3, (color_t){1, 1, 1}, .66, 1, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){2, 1.5, 4}, .3, (color_t){1, 1, 1}, .83, 1, 0.16, .33)));
+    assert(arreglo_agregar(&esferas, esfera_crear((vector_t){3, 1.5, 4}, .3, (color_t){1, 1, 1}, 1, 1, 0.16, .33)));
 
     assert(esferas.n == 23);
     for(size_t i = 0; i < esferas.n; i++)
@@ -281,7 +316,7 @@ int main(void) {
 
     for(int vy = ALTO / 2; vy > - ALTO / 2; vy--)
         for(int vx = - ANCHO / 2; vx < ANCHO / 2; vx++) {
-            color_imprimir(computar_intensidad(&esferas, &luces, ambiente, (vector_t){0, 0, 0}, vector_normalizar((vector_t){vx, vy, vz})));
+            color_imprimir(computar_intensidad(5,&esferas, &luces, ambiente, (vector_t){0, 0, 0}, vector_normalizar((vector_t){vx, vy, vz}),-1));
             putchar('\n');
         }
 
