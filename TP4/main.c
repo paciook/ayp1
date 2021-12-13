@@ -167,16 +167,20 @@ color_t computar_intensidad(color_t ambiente, vector_t o, vector_t d) {
     return (color_t){r, g, b};
 }
 
+void print_uso(char *argv[]){
+    printf("Uso: %s ANCHO ALTO <nombre de archivo BMP o PPM>", argv[0]);
+}
+
 int main(int argc, char *argv[]) {
     
     if(argc != 4){
-        fprintf(stderr, "Error en la cantidad de argumentos.\n");
+        print_uso(argv);
         return 1;
     }
 
     int ancho, alto;
     if(!( (ancho = atoi(argv[1])) > 0 && (alto = atoi(argv[2])) > 0 )){
-        fprintf(stderr, "Alto y/o ancho invalido/s.\n");
+        print_uso(argv);
         return 2;
     }
 
@@ -195,7 +199,6 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Extension incorrecta\n");
             return 4;
         }
-
     }
 
     imagen_t *imagen = imagen_crear(ancho, alto);
