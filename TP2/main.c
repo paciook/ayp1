@@ -106,7 +106,7 @@ void normal_esfera( float normal[3], const float c[3], float r,
 }
 
 int computar_intensidad(const float cs[][3], const float rs[], size_t n_esferas,
-                        const float luz[3], const float o[3], const float d[3], int prof){
+                        const float luz[3], const float o[3], const float d[3]){
     int inten = IA;
 
     // Digamos que no intersectamos nada hasta que se demuestre lo contrario

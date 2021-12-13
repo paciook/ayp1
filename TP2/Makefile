@@ -1,2 +1,2 @@
 do:
-	gcc main.c -o PACIO.out -lm -pedantic -Wall -std=c99
+	gcc main.c -o main -lm -pedantic -Wall -std=c99
