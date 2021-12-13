@@ -276,6 +276,7 @@ int main(void) {
         assert(luces.v[i] != NULL);
 
     assert(arreglo_agregar(&esferas, esfera_crear((vector_t){0, 1, 2.4}, .3, (color_t){1, 1, 1}, 1, 1, 0.16, .33)));
+    /*
     assert(arreglo_agregar(&esferas, esfera_crear((vector_t){0, -.4, 3}, 1, (color_t){1, 1, 1}, 1, 1, 0.16, .33)));
 
     assert(arreglo_agregar(&esferas, esfera_crear((vector_t){-2, -.6, 3}, .3, (color_t){1, 0, 0}, 1, .8, 0.16, .33)));
@@ -305,7 +306,7 @@ int main(void) {
     assert(esferas.n == 23);
     for(size_t i = 0; i < esferas.n; i++)
         assert(esferas.v[i] != NULL);
-
+    */
 
 
     printf("P3\n");
