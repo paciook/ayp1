@@ -22,17 +22,13 @@ int ftopixl(float f){
 }
 
 void escribir_int16_little_endian(FILE *f, int16_t v){
-    for(size_t c = 0; c < 16; c+=8){
-        int8_t aux = (v >> c) & BMASK;
-        fwrite(&aux, sizeof(int8_t), 1, f);
-    }
+    int8_t p[2] = {v & BMASK, (v>>8) & BMASK};
+    fwrite(p, sizeof(int8_t), 2, f);
 }
 
 void escribir_int32_little_endian(FILE *f, int32_t v){
-    for(size_t c = 0; c < 32; c+=8){
-        int8_t aux = (v >> c) & BMASK;
-        fwrite(&aux, sizeof(int8_t), 1, f);
-    }
+    int8_t p[4] = {v & BMASK, (v>>8) & BMASK, (v>>16) & BMASK, (v>>24) & BMASK};
+    fwrite(p, sizeof(int8_t), 4, f);
 }
 
 void escribir_PPM(const imagen_t *imagen, FILE *f){
